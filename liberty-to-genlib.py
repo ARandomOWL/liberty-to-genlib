@@ -130,6 +130,11 @@ for cell in lib.get_groups('cell'):
             ' ': '',
     }
     func = ''.join([replacements.get(c, c) for c in str(func)])
+    # Replace 0 and 1 functions with CONST0/CONST1
+    if func == '0':
+        func = 'CONST0'
+    elif func == '1':
+        func = 'CONST1'
 
     # Translate timing_sense to Genlib format
     switcher = {
