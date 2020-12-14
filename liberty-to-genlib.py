@@ -17,6 +17,9 @@ class TimingSense(Enum):
     NEGATIVE_UNATE  = 2
     UNKNOWN         = 3
 
+def cellIsDontuse (cell):
+    return cell['dont_use']
+
 def cellIsComb (cell):
     return not cellIsSeq(cell)
 
@@ -104,6 +107,11 @@ def cellTimingSense (cell) -> TimingSense:
 for cell in lib.get_groups('cell'):
     cell_name = cell.args[0]
     output_count = 0
+
+    # Skip cell marked 'dont use'
+    if cellIsDontuse(cell):
+        print('Skipping cell marked as "dont use" in input library: {}'.format(cell_name), file=stderr)
+        continue
 
     # Skip cells with multiple outputs
     if cellSingleOutput(cell) == False:
