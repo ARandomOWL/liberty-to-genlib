@@ -4,12 +4,18 @@
 from sys import stderr, argv, stdin
 from liberty.parser import parse_liberty
 from enum import Enum
+import re
 
 fname = argv[1]
 if fname == '-':
     lib = parse_liberty(stdin.read())
 else:
     lib = parse_liberty(open(fname, 'r').read())
+
+if len(argv) > 2:
+    alwaysUseList = argv[2].split(',')
+else:
+    alwaysUseList = []
 
 class TimingSense(Enum):
     NONE            = 0
@@ -108,8 +114,14 @@ for cell in lib.get_groups('cell'):
     cell_name = cell.args[0]
     output_count = 0
 
-    # Skip cell marked 'dont use'
-    if cellIsDontuse(cell):
+    rs = map(re.compile, alwaysUseList)
+    isAlwaysuseMatch = False
+    for r in rs:
+        if r.match(cell.args[0]) != None:
+            isAlwaysuseMatch = True
+
+    # Skip cell marked 'dont use' which are not in the alwaysUseList
+    if cellIsDontuse(cell) and not isAlwaysuseMatch:
         print('Skipping cell marked as "dont use" in input library: {}'.format(cell_name), file=stderr)
         continue
 
