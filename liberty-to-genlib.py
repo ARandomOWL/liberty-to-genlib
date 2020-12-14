@@ -130,14 +130,20 @@ for cell in lib.get_groups('cell'):
 
     # Get output pin's function and translate to Genlib format
     output_pin = cellSingleOutput(cell)
-    func = output_pin['function']
+    func = str(output_pin['function'])
+
+    # Cell has not been determined to be non-unate after checking timing groups.
+    # Is it possible the cell could be unate even if it contains an xor (^) in its function?
+    if '^' in func:
+        print('Rejecting cell with xor operator in cell function field: {}'.format(cell_name), file=stderr)
+        continue
     replacements = {
             '&': '*',
             '|': '+',
             '"': '',
             ' ': '',
     }
-    func = ''.join([replacements.get(c, c) for c in str(func)])
+    func = ''.join([replacements.get(c, c) for c in func])
     # Replace 0 and 1 functions with CONST0/CONST1
     if func == '0':
         func = 'CONST0'
