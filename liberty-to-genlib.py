@@ -1,12 +1,15 @@
 # Attempts to process only combinational gates!
 # Sequential gates *should* be skipped, but may be improperly processed instead!
 # Pin loads and delays are *not* processed! They are ignored, and arbitrary defaults are written to the output.
-from sys import stderr, argv
+from sys import stderr, argv, stdin
 from liberty.parser import parse_liberty
 from enum import Enum
 
 fname = argv[1]
-lib = parse_liberty(open(fname, 'r').read())
+if fname == '-':
+    lib = parse_liberty(stdin.read())
+else:
+    lib = parse_liberty(open(fname, 'r').read())
 
 class TimingSense(Enum):
     NONE            = 0
