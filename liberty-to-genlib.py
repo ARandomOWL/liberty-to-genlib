@@ -1,21 +1,27 @@
 # Attempts to process only combinational gates!
 # Sequential gates *should* be skipped, but may be improperly processed instead!
 # Pin loads and delays are *not* processed! They are ignored, and arbitrary defaults are written to the output.
-from sys import stderr, argv, stdin
+from sys import stderr, stdin
+import argparse
 from liberty.parser import parse_liberty
 from enum import Enum
 import re
 
-fname = argv[1]
-if fname == '-':
+argparser = argparse.ArgumentParser(description='Convert a Synopsys Liberty library to a SIS Genlib library.')
+argparser.add_argument('filename', help='Filename of the Synopsys Liberty file. Use "-" for stdin')
+argparser.add_argument('-v', '--verbose', action='store_true', help='Print more info to stderr')
+argparser.add_argument('-u', '--always-use', action='append', type=lambda s: re.split(',', s), 
+        help='A list of cells to use, regardless of "dont care" status in the input library. Accepts regex.')
+args = argparser.parse_args()
+
+if args.filename == '-':
     lib = parse_liberty(stdin.read())
 else:
-    lib = parse_liberty(open(fname, 'r').read())
+    lib = parse_liberty(open(args.filename, 'r').read())
 
-if len(argv) > 2:
-    alwaysUseList = argv[2].split(',')
-else:
-    alwaysUseList = []
+def debug (message):
+    if args.verbose:
+        print(message, file=stderr)
 
 class TimingSense(Enum):
     NONE            = 0
@@ -114,7 +120,8 @@ for cell in lib.get_groups('cell'):
     cell_name = cell.args[0]
     output_count = 0
 
-    rs = map(re.compile, alwaysUseList)
+    flatten = lambda t: [item for sublist in t for item in sublist]
+    rs = map(re.compile, flatten(args.always_use))
     isAlwaysuseMatch = False
     for r in rs:
         if r.match(cell.args[0]) != None:
@@ -122,22 +129,22 @@ for cell in lib.get_groups('cell'):
 
     # Skip cell marked 'dont use' which are not in the alwaysUseList
     if cellIsDontuse(cell) and not isAlwaysuseMatch:
-        print('Skipping cell marked as "dont use" in input library: {}'.format(cell_name), file=stderr)
+        debug('Skipping cell marked as "dont use" in input library: {}'.format(cell_name))
         continue
 
     # Skip cells with multiple outputs
     if cellSingleOutput(cell) == False:
-        print('Skipping cell without exactly one output pin: {}'.format(cell_name), file=stderr)
+        debug('Skipping cell without exactly one output pin: {}'.format(cell_name))
         continue
 
     # Skip non-unate gates
     if not cellIsUnate(cell):
-        print('Skipping cell with non-unate output: {}'.format(cell_name), file=stderr)
+        debug('Skipping cell with non-unate output: {}'.format(cell_name))
         continue
 
     # Skip sequential gates
     if cellIsSeq(cell):
-        print('Skipping sequential cell: {}'.format(cell_name), file=stderr)
+        debug('Skipping sequential cell: {}'.format(cell_name))
         continue
 
     # Get output pin's function and translate to Genlib format
@@ -147,7 +154,7 @@ for cell in lib.get_groups('cell'):
     # Cell has not been determined to be non-unate after checking timing groups.
     # Is it possible the cell could be unate even if it contains an xor (^) in its function?
     if '^' in func:
-        print('Rejecting cell with xor operator in cell function field: {}'.format(cell_name), file=stderr)
+        debug('Rejecting cell with xor operator in cell function field: {}'.format(cell_name))
         continue
     replacements = {
             '&': '*',
