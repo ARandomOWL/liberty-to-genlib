@@ -30,14 +30,18 @@ class TimingSense(Enum):
     UNKNOWN         = 3
 
 def cellIsDontuse (cell):
-    return cell['dont_use']
+    if cell['dont_use'] is None:
+        return None
+    else:
+        return cell['dont_use'].value
 
 def cellIsComb (cell):
     return not cellIsSeq(cell)
 
 def cellIsSeq (cell):
     for pin in cell.get_groups('pin'):
-        if pin['clock'] == 'true' or pin['clock_gate_out_pin'] == 'true':
+        if ((pin['clock'] is not None and pin['clock'].value == 'true')
+            or (pin['clock_gate_out_pin'] is not None and pin['clock_gate_out_pin'].value == 'true')):
             return True
     return False
 
@@ -60,7 +64,7 @@ def cellIsUnate (cell):
         return False
 
 def pinIsOutput (pin):
-    if pin['direction'] == 'output':
+    if pin['direction'].value == 'output':
         return True
     else:
         return False
@@ -85,7 +89,7 @@ def cellSingleOutput (cell):
 
 # Return timing sense of a pin from a timing group as a TimingSense object
 def timingGetTimingSense (timing) -> TimingSense:
-    sense = timing['timing_sense']
+    sense = timing['timing_sense'].value
     switcher = {
         'positive_unate': TimingSense.POSITIVE_UNATE,
         'negative_unate': TimingSense.NEGATIVE_UNATE,
@@ -117,7 +121,7 @@ def cellTimingSense (cell) -> TimingSense:
 
 # Loop through all cells in library
 for cell in lib.get_groups('cell'):
-    cell_name = cell.args[0]
+    cell_name = cell.args[0].value
     output_count = 0
 
     # Check if cell is in alwaysuse list
@@ -151,7 +155,7 @@ for cell in lib.get_groups('cell'):
 
     # Get output pin's function and translate to Genlib format
     output_pin = cellSingleOutput(cell)
-    func = str(output_pin['function'])
+    func = output_pin['function'].value
 
     # Cell has not been determined to be non-unate after checking timing groups.
     # Is it possible the cell could be unate even if it contains an xor (^) in its function?
@@ -180,7 +184,7 @@ for cell in lib.get_groups('cell'):
 
     area = cell['area']
     # Print Genlib format
-    print('GATE\t{}\t\t{}\t{}={};'.format(cell_name, area, output_pin.args[0], func))
+    print('GATE\t{}\t\t{}\t{}={};'.format(cell_name, area, output_pin.args[0].value, func))
     if not cellIsTie(cell):
         print('PIN *\t{} 1 999 1 0.2 1 0.2'.format(phase))
     print()
