@@ -120,10 +120,11 @@ for cell in lib.get_groups('cell'):
     cell_name = cell.args[0]
     output_count = 0
 
-    if (args.always_use != None):
+    # Check if cell is in alwaysuse list
+    isAlwaysuseMatch = False
+    if (args.always_use != None):   # Don't bother if alwaysuse list is empty
         flatten = lambda t: [item for sublist in t for item in sublist]
         rs = map(re.compile, flatten(args.always_use))
-        isAlwaysuseMatch = False
         for r in rs:
             if r.match(cell_name) != None:
                 isAlwaysuseMatch = True
